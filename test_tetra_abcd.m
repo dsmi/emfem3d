@@ -1,4 +1,4 @@
-% function test_tetra_abcd()
+function test_tetra_abcd()
     
 fh = @(p) ones(size(p,1),1);
 
@@ -15,6 +15,8 @@ fd = @(p) dppiped(p,-1,1,-1,1,-1,1);
 
 % tetramesh(tetra,r)
 
+vol = tetra_v(r, tetra);
+
 for j=1:4
     [a,b,c,d] = tetra_abcd(r,tetra,j);
     for t=1:size(tetra,1)
@@ -22,7 +24,7 @@ for j=1:4
         y=r(tetra(t,:),2);
         z=r(tetra(t,:),3);
         A = [ ones( 4, 1 ), x, y, z ];
-        abcd_all = A\eye(4,4);
+        abcd_all = A\(6*vol(t)*eye(4,4));
         abcd = abcd_all(:,j);
         assert( abs( a(t) - abcd(1) ) < abs( abcd(1) ) * 1e-10 + 1.0e-10 );
         assert( abs( b(t) - abcd(2) ) < abs( abcd(2) ) * 1e-10 + 1.0e-10 );
