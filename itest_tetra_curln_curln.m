@@ -2,7 +2,7 @@ function v = itest_tetra_curln_curln( r, ni, nj )
 % function v = itest_tetra_curln_curln( r, ni, nj )
 %
 %  Evaluates the same integral as integ_tetra_curln_curln:
-%   v = \integ \delta \cross N_i \delta \cross N_j dV
+%   v = \integ \delta \cross N_i \dot \delta \cross N_j dV
 %  but using a different approach, to be used for testing.
 %  This function can only process one tetrahedron at once,
 %   r is 4-by-2 matrix with the vertex coordinates.    

@@ -33,7 +33,7 @@ for j=1:1
         [f, g] = tetra_fg(rt);
 
         % test points
-        p=simplexquad(2,rt);
+        p=simplexquad(3,rt);
 
         [ i1, i2 ] = tetra_edge_verts( j );
         

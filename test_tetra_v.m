@@ -1,4 +1,4 @@
-%% function test_tetra_v
+function test_tetra_v
 
 %%    v1 *
 %%     / | \_

@@ -1,4 +1,4 @@
-%% function test_tetra_edge_length
+function test_tetra_edge_length
 
 %%    v1 *
 %%     / | \_

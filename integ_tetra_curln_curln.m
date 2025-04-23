@@ -1,9 +1,9 @@
 function v = integ_tetra_curln_curln( r, tetra, ni, nj )
 % function v = integ_tetra_curln_curln( r, tetra, ni, nj )
 %
-%  Evaluates integral of product of curls of the (vector) basis
-%  functions associated with edges i and j in a tetrahedron
-%   v = \integ \delta \cross N_i \delta \cross N_j dV
+%  Evaluates integral of cross product of curls of the (vector)
+%  basis functions associated with edges i and j in a tetrahedron
+%   v = \integ \delta \cross N_i \dot \delta \cross N_j dV
 %
 
 vol = tetra_v( r, tetra );
