@@ -11,7 +11,7 @@ dppiped = @(p,x1,x2,y1,y2,z1,z2) ...
 
 fd = @(p) dppiped(p,-1,1,-1,1,-1,1);
 
-[r,tetra]=distmeshnd(fd,fh,0.5,[-1,-1,-1;1,1,1],pfix);
+[r,tetra]=distmeshnd(fd,fh,1.0,[-1,-1,-1;1,1,1],pfix);
 
 % tetramesh(tetra,r)
 
@@ -51,7 +51,8 @@ for j=1:1
         np = size(p,1);
 
         % vector basis functions calculated via abcd
-        Na = (repmat(L1,1,3).*gradL2 - repmat(L2,1,3).*gradL1).*repmat(l,np,3);
+        Na = (repmat(L1,1,3).*repmat(gradL2,np,1) ...
+              - repmat(L2,1,3).*repmat(gradL1,np,1)).*repmat(l,np,3);
 
         % vector basis function calculated via fg
         Nb = repmat(f(j,:),np,1) + cross(repmat(g(j,:),np,1),p,2);

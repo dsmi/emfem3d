@@ -225,7 +225,7 @@ t1 = tic;
 if( it_max<=0 )
   t = l_delaunay_triangulation( p, e_fix );
 end
-t_tri = toc(t1);
+t_tri = tic() - t1;
 it = 0;
 p0 = inf;
 n_tri = 0;
@@ -365,7 +365,7 @@ t_tri = t_tri + td;
 
 
 % Statistics.
-t_tot = toc(t0);
+t_tot = tic() - t0;
 if( nargout>=3 )
   stat.conv = is_converged;
   stat.nit  = it;
@@ -406,7 +406,7 @@ p = l_deduplicate( p );
 % Generate triangulation for grid points p.
 t1 = tic;
 t = l_delaunay_triangulation( p, e_fix );
-td = toc(t1);
+td = tic() - t1;
 
 
 % Calculate simplex centers.
@@ -434,55 +434,10 @@ end
 %------------------------------------------------------------------------------%
 function [ t ] = l_delaunay_triangulation( p, c )
 
-if( nargin<2 )
-  c = [];
-end
-
-IS_WARN       = false;
-USE_DELAUNAYN = true;
-IS_CONSTR     = isnumeric(c) & ~isempty(c);
-
 if( size(p,2)==3 && USE_DELAUNAYN )
   t = delaunayn( p );
 else
-  if( ~isempty(c) && IS_CONSTR && exist('DelaunayTriangulation') && size(p,2)==2 )
-    try
-      if( ~IS_WARN )
-        warning('off','MATLAB:delaunayTriangulation:ConsSplitPtWarnId')
-      end
-      t = delaunayTriangulation( p, c );
-      if( ~IS_WARN )
-        warning('on','MATLAB:delaunayTriangulation:ConsSplitPtWarnId')
-      end
-    catch
-      t = delaunay( p );
-    end
-
-  elseif( exist('DelaunayTri') )
-
-    if( size(p,2)==3 )
-      t = DelaunayTri( p(:,1), p(:,2), p(:,3) );
-    else
-      t = DelaunayTri( p(:,1), p(:,2) );
-    end
-
-  elseif( size(p,2)==3 && exist('delaunay3') && ...
-          ~exist('OCTAVE_VERSION','builtin') )
-
-    t = delaunay3( p(:,1), p(:,2), p(:,3) );
-
-  else
-
-    t = delaunay( p );
-
-  end
-end
-
-if( isa(t,'DelaunayTri') )
-  t = t.Triangulation;
-end
-if( isa(t,'delaunayTriangulation') )
-  t = t.ConnectivityList;
+  t = delaunay( p(:,1), p(:,2) );
 end
 
 %------------------------------------------------------------------------------%
@@ -578,41 +533,9 @@ end
 b = a(i,:);
 
 %------------------------------------------------------------------------------%
-function [ varargout ] = l_call_function( fun, varargin )
+function [ out ] = l_call_function( fun, in )
 
-if( isa(fun,'function_handle') )
-
-  varargout = cell(1,max(1,nargout(fun)));
-  [varargout{:}] = fun( varargin{:} );
-
-elseif( iscell(fun) && (isa(fun{1},'function_handle') || ischar(fun{1})) )
-  args = fun(2:end);
-  fun  = fun{1};
-  if( ischar(fun) )
-    fun = str2func(fun);
-  end
-
-  empty_pos = find(cellfun(@isempty,args));
-  if( ~isempty(empty_pos) )
-    for i=1:length(varargin)
-      if( i<=length(empty_pos) )
-        args{empty_pos(i)} = varargin{i};
-      else
-        args = [ args, varargin{i} ];
-      end
-    end
-  else
-    args = [ varargin, args ];
-  end
-
-  varargout = cell(1,max(1,nargout(fun)));
-  [varargout{:}] = fun( args{:} );
-
-end
-
-if( nargout>0 && ~iscell(varargout) )
-  varargout = { varargout };
-end
+    out = fun( in );
 
 %------------------------------------------------------------------------------%
 function l_message( fid, s )

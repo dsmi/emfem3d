@@ -11,7 +11,7 @@ dppiped = @(p,x1,x2,y1,y2,z1,z2) ...
 
 fd = @(p) dppiped(p,-1,1,-1,1,-1,1);
 
-[r,tetra]=distmeshnd(fd,fh,0.5,[-1,-1,-1;1,1,1],pfix);
+[r,tetra]=distmeshnd(fd,fh,1.0,[-1,-1,-1;1,1,1],pfix);
 
 % tetramesh(tetra,r)
 
