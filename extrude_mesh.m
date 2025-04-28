@@ -18,23 +18,31 @@ r = [ repmat(rt, nl, 1), ...
 % Number of triangles per layer
 ntri = size( tri, 1 );
 
-tetra = ones( ntri*(nl-1)*3, 4 );
+% layer vertices offsets
+layv = reshape( repmat( (0:(nl-2))*nvl, ntri, 1 ), (nl-1)*ntri, 1 );
 
-for l=1:(nl-1)
+% We need to make sure that sides of neighboring prisms have triangles
+% oriented in the same way. We sort the triangle vertices by index (done
+% below) and then make sure that tetrahedra of the first and second edges
+% (ones which have index_v2>index_v1) are oriented one way and the third
+% edge has an opposite orientation. This way tetrahedra of the triangles
+% sharing and edge are always oriented in the same way.
+sorted_tri = sort( tri, 2 );
+
+v1 = repmat( sorted_tri(:,1),       nl - 1, 1 ) + layv;
+v2 = repmat( sorted_tri(:,2),       nl - 1, 1 ) + layv;
+v3 = repmat( sorted_tri(:,3),       nl - 1, 1 ) + layv;
+v4 = repmat( sorted_tri(:,1) + nvl, nl - 1, 1 ) + layv;
+v5 = repmat( sorted_tri(:,2) + nvl, nl - 1, 1 ) + layv;
+v6 = repmat( sorted_tri(:,3) + nvl, nl - 1, 1 ) + layv;
+
+tetra1 = [ v1, v2, v3, v4 ];
+tetra2 = [ v2, v3, v4, v5 ];
+tetra3 = [ v3, v4, v5, v6 ];
     
-    v1 = tri(:,1) + nvl*(l-1);
-    v2 = tri(:,2) + nvl*(l-1);
-    v3 = tri(:,3) + nvl*(l-1);
-    v4 = tri(:,1) + nvl*l;
-    v5 = tri(:,2) + nvl*l;
-    v6 = tri(:,3) + nvl*l;
+tetra = [ tetra1; tetra2; tetra3 ];
 
-    tetra1 = [ v1, v2, v3, v4 ];
-    tetra2 = [ v2, v3, v4, v5 ];
-    tetra3 = [ v3, v4, v5, v6 ];
-    
-    tetra( (ntri*3*(l-1)+0*ntri+1):(ntri*3*(l-1)+1*ntri), : ) = tetra1;
-    tetra( (ntri*3*(l-1)+1*ntri+1):(ntri*3*(l-1)+2*ntri), : ) = tetra2;
-    tetra( (ntri*3*(l-1)+2*ntri+1):(ntri*3*(l-1)+3*ntri), : ) = tetra3;
-end
-
+% Fix orientation
+vol = v = tetra_v(r,tetra);
+to_flip = vol<0;
+tetra(to_flip,[1,2]) = tetra(to_flip,[2,1]);
