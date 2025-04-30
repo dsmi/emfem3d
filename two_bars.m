@@ -46,6 +46,8 @@ zl = [ linspace( -al/2, -bl/2, ceil( (-bl/2+al/2)/l0 ) + 1 ), ...
 
 [ r, tetra ] = extrude_mesh( rtri, tri, zl );
 
+[ edges, tetrae, tetraes ] = collect_tetra_edges( tetra );
+
 % Outer boundary
 fout = @(p) dblock(p,-aw/2,aw/2,-ah/2,ah/2,-al/2,al/2);
 
@@ -78,6 +80,9 @@ surft( ismember( surft(:,1), voutb ) ...
 maxd = max( [ aw, ah, al ] );
 
 trimesh( surft, r(:,1), r(:,2), r(:,3) );
-xlim( [ -maxd maxd ] );
-ylim( [ -maxd maxd ] );
-zlim( [ -maxd maxd ] );
+hold on
+scatter3(r(voutb,1), r(voutb,2), r(voutb,3))
+%% xlim( [ -maxd maxd ] );
+%% ylim( [ -maxd maxd ] );
+%% zlim( [ -maxd maxd ] );
+hold off
