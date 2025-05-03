@@ -8,8 +8,8 @@ bl = 2e-3;
 bs = 2e-4;
 
 % solution area dimensions
-aw = 8e-4;
-ah = 6e-4;
+aw = 8e-4*2;
+ah = 6e-4*2;
 al = 3e-3;
 
 % Outer rectangle
@@ -24,9 +24,9 @@ fd = @(p) foutr(p);
 
 % Signed distance function for (relative) mesh distribution.
 % We want it denser closer to the bars.
-fh = @(p) 0.0002 + 0.2*min(fbr1(p), fbr2(p));
+fh = @(p) 0.0002 + 1.0*min(fbr1(p), fbr2(p));
 
-h0 = min( bw, bh ) / 3;
+h0 = min( bw, bh ) / 2;
 
 % fixed vertices -- corners and around each bar
 fv = [ [-aw/2,-ah/2;-aw/2,ah/2;aw/2,-ah/2;aw/2,ah/2 ]; ...
@@ -38,7 +38,7 @@ fv = [ [-aw/2,-ah/2;-aw/2,ah/2;aw/2,-ah/2;aw/2,ah/2 ]; ...
 %% patch( 'vertices', rtri, 'faces', tri, 'facecolor', [.9, .9, .9] )
 
 % length/thickness of the layer
-l0 = (al-bl) / 2;
+l0 = bl / 16;
 
 zl = [ linspace( -al/2, -bl/2, ceil( (-bl/2+al/2)/l0 ) + 1 ), ...
        linspace( -bl/2,  bl/2, ceil( bl/l0 ) + 1 )( 2:end-1 ), ...
@@ -84,19 +84,64 @@ port_contacts = cell( 2, 2 );
 for m=1:2
     % Distance functions to find contacts vertices of the ports
     portz = -bl/2 + bl*(m-1);
-    fc1 = @(p) dblock( p, -bs/2+bw/2, -bs/2+bw/2, -bh/2, bh/2, portz, portz );
-    fc2 = @(p) dblock( p,  bs/2-bw/2,  bs/2-bw/2, -bh/2, bh/2, portz, portz );
+    ph = bh;
+    fc1 = @(p) dblock( p, -bs/2+bw/2, -bs/2+bw/2, -ph/2, ph/2, portz, portz );
+    fc2 = @(p) dblock( p,  bs/2-bw/2,  bs/2-bw/2, -ph/2, ph/2, portz, portz );
 
     % Contacts vertices of the ports
     port_contacts( m, 1 ) = find( abs( fc1( r ) ) < 1e-7 );
     port_contacts( m, 2 ) = find( abs( fc2( r ) ) < 1e-7 );
 end
 
-%% % And make the ports matrix
-P = mkportsmat( G, edges, port_contacts );
+% And make the ports matrix
+P = mkportmat( G, edges, port_contacts );
+
+% pec boundary distance function
+fpec = @(p) min( min( fbar1( p ), fbar2( p ) ), -fout( p ) );
+
+% vertices on the pec boundary
+vpec = find( abs( fpec( r ) ) < 1e-7 );
 
 % vertices on the outer boundary
 voutb = find( abs( fout( r ) ) < 1e-7 );
+
+% angular frequency
+w = 2*pi*1e9;
+
+% properties of the medium
+Z0 = sqrt(mu0/eps0);
+k0 = w*sqrt(eps0*mu0);
+
+% Full admittance matrix K
+K = sparse( nedges, nedges );
+for ni=1:6
+    for nj=1:6
+        K0 = integ_tetra_curln_curln( r, tetra, ni, nj );
+        K2 = integ_tetra_n_n( r, tetra, ni, nj );
+        Ke = tetraes(:,ni).*tetraes(:,nj).*( K0 - k0*k0*K2 );
+        K = K + sparse( tetrae(:,ni), tetrae(:,nj), Ke, nedges, nedges );
+    end
+end
+
+% Unknown (non-pec) edges. Check if both ends and center of the
+% edge is on the pec boundary to see if this is a pec edge. 
+eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-7 ...
+                & abs( fpec( r(edges(:,2),:) ) ) < 1e-7 ...
+                & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-7 ) );
+
+neunk = length(eunk);
+
+% Matrix to get rows/columns for the unknown edges from K
+S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
+
+% Rhs vector
+b = full( S'*spdiags( -j*k0*Z0*edgelen, 0, nedges, nedges )*P );
+
+A = S'*K*S;
+
+x = A \ b;
+
+Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
 
 surft = surftri( r, tetra );
 
@@ -109,23 +154,25 @@ maxd = max( [ aw, ah, al ] );
 
 trimesh( surft, r(:,1), r(:,2), r(:,3) );
 hold on
-%% scatter3(r(vc1,1), r(vc1,2), r(vc1,3), 'r')
-%% scatter3(r(vc2,1), r(vc2,2), r(vc2,3), 'b')
-scatter3(r(voutb,1), r(voutb,2), r(voutb,3))
+scatter3(r(vpec,1), r(vpec,2), r(vpec,3))
 %% xlim( [ -maxd maxd ] );
 %% ylim( [ -maxd maxd ] );
 %% zlim( [ -maxd maxd ] );
 
 nports = size(P,2);
-for j=1:nports
-    [pi,pj,pw] = find(P(:,j));
-    r0 = r(edges(pi,1),:);
-    rr = r(edges(pi,2),:) - r(edges(pi,1),:);
+for k=1:nports
+    [pe,pj,pw] = find(P(:,k));
+    r0 = r(edges(pe,1),:);
+    rr = r(edges(pe,2),:) - r(edges(pe,1),:);
     nwidx = find( pw < 0 ); % ones with neg weight are to be flipped
-    r0(nwidx,:) = r(edges(pi(nwidx),2),:);
-    rr(nwidx,:) = r(edges(pi(nwidx),1),:) - r(edges(pi(nwidx),2),:);
+    r0(nwidx,:) = r(edges(pe(nwidx),2),:);
+    rr(nwidx,:) = r(edges(pe(nwidx),1),:) - r(edges(pe(nwidx),2),:);
     quiver3( r0(:,1), r0(:,2), r0(:,3), rr(:,1), rr(:,2), rr(:,3), 0 );
 end
 
+%% X = [ r(edges(eunk,1),1), r(edges(eunk,2),1) ]';
+%% Y = [ r(edges(eunk,1),2), r(edges(eunk,2),2) ]';
+%% Z = [ r(edges(eunk,1),3), r(edges(eunk,2),3) ]';
+%% plot3( X, Y, Z, '*-r' );
 
 hold off
