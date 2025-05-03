@@ -540,14 +540,14 @@ function [ out ] = l_call_function( fun, in )
 %------------------------------------------------------------------------------%
 function l_message( fid, s )
 
-if( isscalar(fid) && isnumeric(fid) && fid>0 )
-  if( ~any(double(s(end))==[10,13]) )
-    s = [s,char(10)];
-  end
-  fprintf( fid, s );
-elseif( isa(fid,'function_handle') )
-  fid( s );
-end
+%% if( isscalar(fid) && isnumeric(fid) && fid>0 )
+%%   if( ~any(double(s(end))==[10,13]) )
+%%     s = [s,char(10)];
+%%   end
+%%   fprintf( fid, s );
+%% elseif( isa(fid,'function_handle') )
+%%   fid( s );
+%% end
 
 %------------------------------------------------------------------------------%
 function l_plot( p, t )
