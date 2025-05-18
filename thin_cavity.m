@@ -27,11 +27,11 @@ fp2 = @(p) dcircle( p, x2, y2, rp );
 fh = @(p) 0.001 + 0.1*abs(min(fp1(p), fp2(p)));
 %% fh = @(p) ones(size(p,1),1);
 
-h0 = w/100;
+h0 = w/40;
 
 % Fixed vertices
 fv = [-aw/2,-al/2;-aw/2,al/2;aw/2,-al/2;aw/2,al/2;...
-      ptonrect( 0, 0, w, l, round(w/rp/2), round(l/rp/2) );...
+      ptonrect( 0, 0, w, l, round(w/rp/4), round(l/rp/4) );...
       ptoncir( x1, y1, rp, 8 );...
       ptoncir( x2, y2, rp, 8 ); ];
 
@@ -123,7 +123,7 @@ S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
 
 
 % angular frequencies
-freqs = linspace(1e6, 1e9, 21)*2*pi;
+freqs = linspace(1e6, 1e9, 41)*2*pi;
 %% freqs = 1e9*2*pi;
 
 Zf = [ ]; % Simulated Z for all frequency points
