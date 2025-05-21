@@ -5,7 +5,7 @@ function v = iquad_tetra_n_n( r, ni, nj )
 %   v = \integ N_i \dot N_j dV
 %  using a quadrature; to be used for testing.
 %  This function can only process one tetrahedron at once,
-%   r is 4-by-2 matrix with the vertex coordinates.    
+%   r is 4-by-3 matrix with the vertex coordinates.    
 %
 
 % quadrature points
