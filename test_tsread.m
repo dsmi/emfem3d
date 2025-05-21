@@ -1,4 +1,4 @@
-
+function test_tsread
 
 [ fz, Z, tz ] = tsread( 'test_touchstone.z2p' );
 
@@ -21,6 +21,7 @@ assert( strcmp( 's', ts ) );
 assert( 9 == length( fs ) );
 assert( [ 4 4 9 ] == size( S ) );
 
+s12 = S(1,2,3);
 assert( abs( 6.299587822380916e-08+j*6.378678054213011e-08 - s12 ) < 1e-12 );
 
 
