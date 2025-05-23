@@ -21,7 +21,7 @@ fd = @(p) dblock(p,-1,1,-1,1,-1,1);
 assert( sort(edges,2) == edges )
 assert( unique(edges,'rows') == edges )
 
-% Validate trie and tries
+% Validate tetrae and tetraes
 for t=1:size(tetra,1)
     for j=1:6
         [ i1, i2 ] = tetra_edge_verts( j );
