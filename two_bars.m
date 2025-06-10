@@ -24,7 +24,7 @@ fd = @(p) foutr(p);
 
 % Signed distance function for (relative) mesh distribution.
 % We want it denser closer to the bars.
-fh = @(p) 0.0002 + 1.0*min(fbr1(p), fbr2(p));
+fh = @(p) 0.0002 + 1.0*max(fbr1(p), fbr2(p));
 
 h0 = min( bw, bh ) / 2;
 
