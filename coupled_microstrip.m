@@ -1,18 +1,21 @@
 
 clear all;
 
+mil2meter  = 2.54e-5;
+inch2meter = 1e3*mil2meter;
+
 % The geometry
-t4 = 2e-4;   % dielectric above the trace thickness
-t3 = 5e-4;   % trace thickness
-t2 = 1e-3;   % trace-to-ground layer thickness
-t1 = 5e-4;   % ground thickness
-tw = 1e-3;   % trace width
-ts = 4e-3;   % center-to-center trace separation
-gw = (ts+tw)*3; % ground width
+t4 = 0.5*mil2meter;   % dielectric above the trace thickness
+t3 = 1.8*mil2meter;   % trace thickness
+t2 = 2.98*mil2meter;  % trace-to-ground layer thickness
+t1 = 1.2*mil2meter;   % ground thickness
+tw = 4*mil2meter;   % trace width
+ts = 8*mil2meter;   % center-to-center trace separation
+gw = (ts+tw)*8; % ground width
 aw = gw*1.1; % simulation area width
 t0 = t1;     % thickness of layer under ground
-t5 = (t2+t3+t4);  % thickness of topmost layer
-tl = 1e-2;   % trace length
+t5 = (t2+t3+t4)*4;  % thickness of topmost layer
+tl = 0.175*inch2meter;   % trace length
 al = tl*1.2; % simultion area length
 
 % Crossection bounding rectangle
@@ -31,8 +34,8 @@ fgndx = @(p) drectangle(p, -gw/2, gw/2, 0, t1 );
 fditf1 = @(p) abs(-(t1+t2)+p(:,2));
 fditf2 = @(p) abs(-(t1+t2+t3+t4)+p(:,2));
 
-fh = @(p) 0.005 + 1.0*abs(min(min(min(min(ftrace1x(p), ftrace2x(p)), ...
-                                      fgndx(p)), fditf1(p) ), fditf2(p)));
+fh = @(p) 0.00005 + 1.0*abs(min(min(min(min(ftrace1x(p), ftrace2x(p)), ...
+                                        fgndx(p)), fditf1(p) ), fditf2(p)));
 
 h0 = min( t3, tw );
 
@@ -42,9 +45,9 @@ xy = @( x, y ) [ x', x'*0 + y ];
 % fixed vertices -- corners, each trace, ground, dielectric interfaces
 fvd = h0*0.9;
 fv = [ [ minx,miny;minx,maxy;maxx,miny;maxx,maxy ]; ...
-       ptonrect( -ts/2, t1+t2+t3/2, tw, t3, ceil(tw/fvd), ceil(t3/fvd) ); ...
-       ptonrect(  ts/2, t1+t2+t3/2, tw, t3, ceil(tw/fvd), ceil(t3/fvd) ); ...
-       ptonrect(     0,       t1/2, gw, t1, ceil(gw/fvd), ceil(t1/fvd) ); ...
+       ptonrect( -ts/2, t1+t2+t3/2, tw, t3, ceil(tw/h0), ceil(t3/h0) ); ...
+       ptonrect(  ts/2, t1+t2+t3/2, tw, t3, ceil(tw/h0), ceil(t3/h0) ); ...
+       ptonrect(     0,       t1/2, gw, t1, ceil(gw/h0), ceil(t1/h0) ); ...
        xy( linstep( -aw/2, -ts/2-tw/2, fvd )(1:end-1), t1+t2 ); ...
        xy( linstep( -ts/2+tw/2, ts/2-tw/2, fvd )(2:end-1), t1+t2 ); ...
        xy( linstep(  ts/2+tw/2, aw/2, fvd )(2:end), t1+t2 ); ...
@@ -56,7 +59,7 @@ fv = [ [ minx,miny;minx,maxy;maxx,miny;maxx,maxy ]; ...
 
 % Number of layers
 nlo = 4;   % outside at each side
-nlt = 30;  % trace
+nlt = 20;  % trace
 
 zl = [ linspace( -al/2,  -tl/2,  nlo + 1 )(1:end-1), ...
        linspace( -tl/2,   tl/2,  nlt + 1 )(1:end-1), ...
@@ -102,6 +105,8 @@ port_contacts = cell( 4, 2 );
 
 portx = [ -ts/2, -ts/2,  ts/2, ts/2 ];
 portz = [ -tl/2,  tl/2, -tl/2, tl/2 ];
+%% portx = [ -ts/2,  ts/2, -ts/2, ts/2 ];
+%% portz = [ -tl/2, -tl/2,  tl/2, tl/2 ];
 
 for p=1:4
     px = portx(p);
@@ -127,13 +132,13 @@ tout = find( ismember( tri(:,1), voutb ) ...
              & ismember( tri(:,3), voutb ) );
 
 %% % pec boundary distance function
-%% fpec = @(p) min( fwire1( p ), fwire2( p ) );
+%% fpec = fallcnd;
 
 %% % Unknown (non-pec) edges. Check if both ends and center of the
 %% % edge is on the pec boundary to see if this is a pec edge. 
-%% eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-7 ...
-%%                 & abs( fpec( r(edges(:,2),:) ) ) < 1e-7 ...
-%%                 & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-7 ) );
+%% eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-10 ...
+%%                 & abs( fpec( r(edges(:,2),:) ) ) < 1e-10 ...
+%%                 & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-10 ) );
 
 eunk = transpose( 1:size(edges,1) ); % no pec -- all edges unknown
 neunk = length(eunk);
@@ -157,8 +162,7 @@ er( findtetra( r, tetra, fdiel1 ) ) = 3.2912;
 lt( findtetra( r, tetra, fdiel1 ) ) = 0.0033;
 
 % angular frequencies
-freqs = linspace(1e6, 4e10, 40)*2*pi;
-%% freqs = 1e8*2*pi;
+freqs = linspace(1e7, 4e10, 21)*2*pi;
 
 Zf = [ ]; % Simulated Z for all frequency points
 
@@ -206,6 +210,8 @@ for w = freqs
 
     A = S'*K*S;
 
+    nnz_A = nnz(A)
+
     tic;
     x = A \ b;
     toc;
@@ -213,10 +219,10 @@ for w = freqs
     Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
 
     Zf = cat(3, Zf, Z);
+
+    tswrite( 'coupled_microstrip.z4p', freqs/(2*pi), Zf, 'Z', 50 );
     
 end
-
-tswrite( 'coupled_microstrip.z4p', freqs/(2*pi), Zf, 'Z', 50 );
 
 tri(tout,:) = []; % drop the outer boundary so we can see the structure
 %% trimesh( tri, r(:,1), r(:,2), r(:,3) );
