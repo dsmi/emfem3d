@@ -1,5 +1,8 @@
+function dipole_antenna( show_plot )
 
-clear all;
+if ~exist('show_plot', 'var')
+    show_plot = 1;
+end
 
 % The geometry
 l = 3e-1   % antenna length (z size)
@@ -92,8 +95,9 @@ tout = find( ismember( tri(:,1), voutb ) ...
              & ismember( tri(:,2), voutb ) ...
              & ismember( tri(:,3), voutb ) );
 
-% pec boundary distance function
-fpec = @(p) min( fwire1( p ), fwire2( p ) );
+% pec boundary distance function. No pec boundary.
+%% fpec = @(p) min( fwire1( p ), fwire2( p ) );
+fpec = @(p) ones(size(p,1),1);
 
 % Unknown (non-pec) edges. Check if both ends and center of the
 % edge is on the pec boundary to see if this is a pec edge. 
@@ -110,8 +114,8 @@ S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
 wh = 2*pi/(2*l*sqrt(eps0 * mu0));
 
 % angular frequencies
-%% freqs = linspace(wh/4, wh*4, 30);
-freqs = wh;
+freqs = linspace(wh/2, wh*2, 5);
+%% freqs = wh;
 
 Zf = [ ]; % Simulated Z for all frequency points
 
@@ -157,11 +161,9 @@ for w = freqs
 
     A = S'*K*S;
 
-    tic;
     x = A \ b;
-    toc;
 
-    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
+    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x;
 
     Zf = cat(3, Zf, Z);
     
@@ -169,16 +171,19 @@ end
 
 tswrite( 'dipole_antenna.z1p', freqs/(2*pi), Zf, 'Z', 50 );
 
-tri(tout,:) = []; % drop the outer boundary so we can see the antenna
-trimesh( tri, r(:,1), r(:,2), r(:,3) );
+if show_plot
+    tri(tout,:) = []; % drop the outer boundary so we can see the antenna
+    trimesh( tri, r(:,1), r(:,2), r(:,3) );
 
-hold on
+    hold on
 
-%% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
+    %% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
 
-drawports( P, edges, r );
+    drawports( P, edges, r );
 
-patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
-%% scatter( fv(:,1), fv(:,2), 'r' )
+    patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
+    %% scatter( fv(:,1), fv(:,2), 'r' )
 
-hold off
+    hold off
+end
+

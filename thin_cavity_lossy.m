@@ -1,5 +1,8 @@
+function thin_cavity_lossy( show_plot )
 
-clear all;
+if ~exist('show_plot', 'var')
+    show_plot = 1;
+end
 
 % The geometry
 w = 5e-2;  % cavity width  (x size)
@@ -120,11 +123,10 @@ tout = find( ismember( tri(:,1), voutb ) ...
              & ismember( tri(:,3), voutb ) );
 
 % angular frequencies
-freqs = linspace(1e6, 1e9, 21)*2*pi;
+freqs = linspace(1e6, 1e9, 41)*2*pi;
 %% freqs = 1e9*2*pi;
 
 Zf = [ ]; % Simulated Z for all frequency points
-
 
 for w = freqs
     w
@@ -133,8 +135,8 @@ for w = freqs
     Z0 = sqrt(mu0/eps0);
     k0 = w*sqrt(eps0*mu0);
 
-    % metal conductivity. Very high for the conductor loss experiments.
-    sigma = 5.8e7 * 1e-3;
+    % metal conductivity. Very low (copper / 100) for the loss experiments.
+    sigma = 5.8e7*1e-2;
 
     % Full admittance matrix K
     K = sparse( nedges, nedges );
@@ -166,11 +168,9 @@ for w = freqs
 
     A = K;
 
-    tic;
     x = A \ b;
-    toc;
 
-    Z = -(spdiags( edgelen, 0, nedges, nedges )*P)'*x
+    Z = -(spdiags( edgelen, 0, nedges, nedges )*P)'*x;
 
     Zf = cat(3, Zf, Z);
     
@@ -178,15 +178,18 @@ end
 
 tswrite( 'thin_cavity_highloss.z2p', freqs/(2*pi), Zf, 'Z', 50 );
 
-%% surft = surftri( r, tetra );
+if show_plot
+    surft = surftri( r, tetra );
 
-%% trimesh( surft, r(:,1), r(:,2), r(:,3) );
+    trimesh( surft, r(:,1), r(:,2), r(:,3) );
 
-%% hold on
+    hold on
 
-%% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
+    %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
 
-%% drawports( P, edges, r );
+    drawports( P, edges, r );
 
-%% hold off
+    hold off
+end
+
 

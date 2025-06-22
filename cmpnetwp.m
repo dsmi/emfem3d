@@ -18,27 +18,23 @@ end
 nf1 = norm( freq1 );
 nf2 = norm( freq2 );
 
-if ( abs( nf1 - nf2 ) > abstol )
+if ( abs( nf1 - nf2 ) > abstol + reltol * max( nf1, nf2 ) )
     rc = 3;
     return;
 end
 
-if ( nf1 - nf2 ) > reltol * max( nf1, nf2 ) )
-    rc = 4;
-    return;
-end
+nfreq = size(P1,3);
 
-np1 = norm( P1 );
-np2 = norm( P2 );
+for i=1:nfreq
 
-if ( abs( np1 - np2 ) > abstol )
-    rc = 5;
-    return;
-end
+    np1 = norm( P1(:,:,i) );
+    np2 = norm( P2(:,:,i) );
 
-if ( np1 - np2 ) > reltol * max( np1, np2 ) )
-    rc = 6;
-    return;
+    if ( abs( np1 - np2 ) > abstol + reltol * max( np1, np2 ) )
+        rc = 4;
+        return;
+    end
+    
 end
 
 rc = 0;

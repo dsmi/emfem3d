@@ -1,5 +1,8 @@
+function coupled_microstrip( show_plot )
 
-clear all;
+if ~exist('show_plot', 'var')
+    show_plot = 1;
+end
 
 mil2meter  = 2.54e-5;
 inch2meter = 1e3*mil2meter;
@@ -92,6 +95,12 @@ ntetra = size( tetra, 1 )
 nedges = size( edges, 1 )
 nsurft = size( tri, 1 )
 
+% Surface impedance bc at the conductor boundary.
+fsurfz = fallcnd;
+
+% Matching boundary condition at the outer boundary of the domain.
+fmatch = fout;
+
 % length of the edges
 edgelen = sqrt( sum( (r(edges(:,2),:) - r(edges(:,1),:)).^2, 2) );
 
@@ -123,28 +132,8 @@ end
 % And make the ports matrix
 P = mkportmat( G, edges, port_contacts );
 
-% vertices on the outer boundary
-voutb = find( abs( fout( r ) ) < 1e-7 );
-
-% Triangles on the outer boundary, where we want to use matching bc
-tout = find( ismember( tri(:,1), voutb ) ...
-             & ismember( tri(:,2), voutb ) ...
-             & ismember( tri(:,3), voutb ) );
-
-%% % pec boundary distance function
-%% fpec = fallcnd;
-
-%% % Unknown (non-pec) edges. Check if both ends and center of the
-%% % edge is on the pec boundary to see if this is a pec edge. 
-%% eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-10 ...
-%%                 & abs( fpec( r(edges(:,2),:) ) ) < 1e-10 ...
-%%                 & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-10 ) );
-
-eunk = transpose( 1:size(edges,1) ); % no pec -- all edges unknown
-neunk = length(eunk);
-
-% Matrix to get rows/columns for the unknown edges from K
-S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
+% pec boundary distance function -- no pec edges in this case
+fpec = @(p) ones(size(p,1),1);
 
 % Dielectric properties for each tetrahedra
 er = ones(size(tetra,1),1);
@@ -161,6 +150,9 @@ lt( findtetra( r, tetra, fdiel2 ) ) = 0.026;
 er( findtetra( r, tetra, fdiel1 ) ) = 3.2912;
 lt( findtetra( r, tetra, fdiel1 ) ) = 0.0033;
 
+% metal conductivity.
+sigma = 5.8e7;
+
 % angular frequencies
 freqs = linspace(1e7, 4e10, 21)*2*pi;
 
@@ -169,54 +161,14 @@ Zf = [ ]; % Simulated Z for all frequency points
 for w = freqs
     w
 
-    % properties of the medium
-    epsd = eps0*debye(er, lt, 2*pi*fref, w);
-    Z0 = sqrt(mu0./epsd);
-    k0 = w*sqrt(epsd*mu0);
+    [ K, b, S ] = mkglobalmat( r, tetra, edges, tetrae, tetraes, ...
+                               tri, tri_tetra, trie, tries, ...
+                               w, er, lt, fref, sigma, ...
+                               P, fpec, fsurfz, fmatch );
 
-    % the same over the entire domain
-    k0_Z0 = w*mu0;
+    x = K \ b;
 
-    % metal conductivity.
-    sigma = 5.8e7;
-
-    % Full admittance matrix K
-    K = sparse( nedges, nedges );
-
-    % Tetrahedra
-    for ni=1:6
-        for nj=1:6
-            K0 = integ_tetra_curln_curln( r, tetra, ni, nj );
-            K2 = integ_tetra_n_n( r, tetra, ni, nj );
-            Ke = tetraes(:,ni).*tetraes(:,nj).*( K0 - k0.*k0.*K2 );
-            K = K + sparse( tetrae(:,ni), tetrae(:,nj), Ke, nedges, nedges );
-        end
-    end
-
-    % Triangles. Surface impedance on the conductor surface and
-    % matching on the outer surface.
-    ktri = ones(size(tri,1),1)*sqrt(j*sigma*k0_Z0);
-    ktri(tout) = j*k0(tri_tetra(tout)); % matching
-    for ni=1:3
-        for nj=1:3
-            Ks = ktri.*integ_tri_nxn_nxn( r, tri, ni, nj );
-            Ke = tries(:,ni).*tries(:,nj).*Ks;
-            K = K + sparse( trie(:,ni), trie(:,nj), Ke, nedges, nedges );
-        end
-    end
-
-    % Rhs vector
-    b = full( S'*spdiags( -j*k0_Z0*edgelen, 0, nedges, nedges )*P );
-
-    A = S'*K*S;
-
-    nnz_A = nnz(A)
-
-    tic;
-    x = A \ b;
-    toc;
-
-    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
+    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x;
 
     Zf = cat(3, Zf, Z);
 
@@ -224,19 +176,25 @@ for w = freqs
     
 end
 
-tri(tout,:) = []; % drop the outer boundary so we can see the structure
-%% trimesh( tri, r(:,1), r(:,2), r(:,3) );
-trimesh( tri, r(:,3), r(:,1), r(:,2)  );
+S = renorms( z2s( Zf ), [ 1 1 1 1 ], [ 50 50 50 50 ] );
 
-hold on
+tswrite( 'coupled_microstrip.s4p', freqs/(2*pi), S, 'S', 50 );
 
-%% %% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
+if show_plot
+    tri(tout,:) = []; % drop the outer boundary so we can see the structure
+    %% trimesh( tri, r(:,1), r(:,2), r(:,3) );
+    trimesh( tri, r(:,3), r(:,1), r(:,2)  );
 
-%% drawports( P, edges, r );
-drawports( P, edges, [ r(:,3) r(:,1) r(:,2) ] );
+    hold on
 
-%% patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
-patch('vertices', [ xr(:,1)*0 xr(:,1) xr(:,2) ], 'faces', xtri, 'facecolor', [.9 .9 .9])
-%% scatter( fv(:,1), fv(:,2), 'r' )
+    %% %% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
 
-hold off
+    %% drawports( P, edges, r );
+    drawports( P, edges, [ r(:,3) r(:,1) r(:,2) ] );
+
+    %% patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
+    patch('vertices', [ xr(:,1)*0 xr(:,1) xr(:,2) ], 'faces', xtri, 'facecolor', [.9 .9 .9])
+    %% scatter( fv(:,1), fv(:,2), 'r' )
+
+    hold off
+end

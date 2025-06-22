@@ -1,8 +1,8 @@
+function round_cavity( show_plot )
 
-clear all;
-
-mil2meter  = 2.54e-5;
-inch2meter = 1e3*mil2meter;
+if ~exist('show_plot', 'var')
+    show_plot = 1;
+end
 
 % The geometry
 r1 = 5e-4;     % port radius
@@ -108,11 +108,11 @@ fpec = @(p) fallcnd(p);
 
 % Unknown (non-pec) edges. Check if both ends and center of the
 % edge is on the pec boundary to see if this is a pec edge. 
-eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-10 ...
-                & abs( fpec( r(edges(:,2),:) ) ) < 1e-10 ...
-                & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-10 ) );
+%% eunk = find( ~( abs( fpec( r(edges(:,1),:) ) ) < 1e-10 ...
+%%                 & abs( fpec( r(edges(:,2),:) ) ) < 1e-10 ...
+%%                 & abs( fpec( (r(edges(:,1),:)+r(edges(:,2),:))*.5) ) < 1e-10 ) );
 
-%% eunk = transpose( 1:size(edges,1) ); % no pec -- all edges unknown
+eunk = transpose( 1:size(edges,1) ); % no pec -- all edges unknown
 
 neunk = length(eunk);
 
@@ -121,14 +121,15 @@ S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
 
 
 % angular frequencies
-freqs = linspace(1e7, 2e10, 21)*2*pi;
+freqs = linspace(1e7, 1.2e10, 21)*2*pi;
 
 Zf = [ ];  % Simulated Z for all frequency points
 Zaf = [ ]; % Analytical Z for all frequency points
 Zmf = [ ]; % Matched cavity Z for all frequency points
 
 for w = freqs
-    (w/(2*pi))
+    
+    freq_hz = (w/(2*pi))
 
     % properties of the medium
     epsd = eps0*debye(er, lt, 2*pi*fref, w);
@@ -173,7 +174,7 @@ for w = freqs
 
     x = A \ b;
 
-    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
+    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x;
 
     Zf = cat(3, Zf, Z);
 
@@ -188,37 +189,38 @@ for w = freqs
     %% M = [ besselj(0, k*r1) bessely(0, k*r1) ; ...
     %%       besselj(0, k*r2) bessely(0, k*r2) ];
     M = [ besselh(0,2,k*r1) besselh(0,1,k*r1) ; ...
-          besselh(0,2,k*r2) besselh(0,1,k*r2) ]
+          besselh(0,2,k*r2) besselh(0,1,k*r2) ];
 
     %% dM = [ -besselj(1, k*r1)*k*r1 -bessely(1, k*r1)*k*r1 ; ...
     %%        -besselj(1, k*r2)*k*r2 -bessely(1, k*r2)*k*r2 ];
     dM = [ -besselh(1,2,k*r1)*k*r1 -besselh(1,1,k*r1)*k*r1 ; ...
-           -besselh(1,2,k*r2)*k*r2 -besselh(1,1,k*r2)*k*r2 ]
+           -besselh(1,2,k*r2)*k*r2 -besselh(1,1,k*r2)*k*r2 ];
 
     b = [ 1 ; 0 ];
-    x = dM\b
+    x = dM\b;
 
     V = M*x;
     I = -2*pi/Zplane;
-    Za = V(1)/I
+    Za = V(1)/I;
     Zaf = cat(3, Zaf, Za);
 
     tswrite( 'round_cavity.z1p', freqs/(2*pi),   Zf,  'Z', 50 );
-    tswrite( 'round_cavity_a.z1p', freqs/(2*pi), Zaf, 'Z', 50 );
-    %% tswrite( 'round_cavity_matched.z1p', freqs/(2*pi), Zmf, 'Z', 50 );
+    tswrite( 'round_cavity_analytical.z1p', freqs/(2*pi), Zaf, 'Z', 50 );
     
 end
 
-tri(tout,:) = []; % drop the outer boundary so we can see the structure
-trimesh( tri, r(:,1), r(:,2), r(:,3) );
+if show_plot
+    tri(tout,:) = []; % drop the outer boundary so we can see the structure
+    trimesh( tri, r(:,1), r(:,2), r(:,3) );
 
-hold on
+    hold on
 
-%% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
+    %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
 
-drawports( P, edges, r );
+    drawports( P, edges, r );
 
-%% patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
-%% scatter3( fv(:,1), fv(:,2), fv(:,2)*0, 'r' )
+    %% patch( 'vertices', xr, 'faces', xtri, 'facecolor', [.9, .9, .9] )
+    %% scatter3( fv(:,1), fv(:,2), fv(:,2)*0, 'r' )
 
-hold off
+    hold off
+end

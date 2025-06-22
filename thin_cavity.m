@@ -1,4 +1,8 @@
+function thin_cavity( show_plot )
 
+if ~exist('show_plot', 'var')
+    show_plot = 1;
+end
 
 % The geometry
 w = 5e-2;  % cavity width  (x size)
@@ -121,13 +125,11 @@ neunk = length(eunk);
 % Matrix to get rows/columns for the unknown edges from K
 S = sparse( eunk, transpose( 1:neunk ), ones( neunk, 1 ), nedges, neunk );
 
-
 % angular frequencies
 freqs = linspace(1e6, 1e9, 41)*2*pi;
 %% freqs = 1e9*2*pi;
 
 Zf = [ ]; % Simulated Z for all frequency points
-
 
 for w = freqs
     w
@@ -152,11 +154,9 @@ for w = freqs
 
     A = S'*K*S;
 
-    tic;
     x = A \ b;
-    toc;
 
-    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x
+    Z = -(S'*spdiags( edgelen, 0, nedges, nedges )*P)'*x;
 
     Zf = cat(3, Zf, Z);
     
@@ -164,23 +164,24 @@ end
 
 tswrite( 'thin_cavity.z2p', freqs/(2*pi), Zf, 'Z', 50 );
 
-%% % vertices on the outer boundary
-%% voutb = find( abs( fout( r ) ) < 1e-7 );
+if show_plot
+    % vertices on the outer boundary
+    voutb = find( abs( fout( r ) ) < 1e-7 );
 
-%% surft = surftri( r, tetra );
+    surft = surftri( r, tetra );
 
-%% % remove triangles on the outer boundary
-%% surft( ismember( surft(:,1), voutb ) ...
-%%        & ismember( surft(:,2), voutb ) ...
-%%        & ismember( surft(:,3), voutb ), : ) = [ ];
+                              % remove triangles on the outer boundary
+    surft( ismember( surft(:,1), voutb ) ...
+           & ismember( surft(:,2), voutb ) ...
+           & ismember( surft(:,3), voutb ), : ) = [ ];
 
-%% trimesh( surft, r(:,1), r(:,2), r(:,3) );
+    trimesh( surft, r(:,1), r(:,2), r(:,3) );
 
-%% hold on
+    hold on
 
-%% %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
+    %% scatter3(r(vpec,1), r(vpec,2), r(vpec,3));
 
-%% drawports( P, edges, r );
+    drawports( P, edges, r );
 
-%% hold off
-
+    hold off
+end
